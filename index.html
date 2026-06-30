@@ -1,0 +1,365 @@
+<!doctype html>
+<html lang="uk">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no, viewport-fit=cover" />
+<title>Мої тренування</title>
+<link rel="manifest" href="manifest.json">
+<meta name="theme-color" content="#080C0B">
+<meta name="mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+<meta name="apple-mobile-web-app-title" content="Тренування">
+<link rel="apple-touch-icon" href="icon-180.png">
+<script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/4.4.1/chart.umd.min.js"></script>
+<style>
+  :root{
+    --text:#F4F7F5; --hint:#9FAAA4; --line:rgba(255,255,255,.10);
+    --green:#33E29B; --green2:#6BF3C0; --on-accent:#06241A; --expense:#FF6B6B;
+    --glass:rgba(255,255,255,.07); --glass-strong:rgba(255,255,255,.13); --glass-brd:rgba(255,255,255,.14);
+    --hi:inset 0 1px 0 rgba(255,255,255,.22); --blur:saturate(170%) blur(26px);
+    --shadow:0 14px 40px -10px rgba(0,0,0,.55); --glow:0 8px 26px -6px rgba(51,226,155,.5);
+    --r:26px; --nav-h:66px;
+  }
+  *{ box-sizing:border-box; -webkit-tap-highlight-color:transparent; }
+  html,body{ margin:0; padding:0; }
+  body{ color:var(--text); position:relative; min-height:100vh;
+    font-family:-apple-system,BlinkMacSystemFont,"SF Pro Display","Segoe UI",Roboto,sans-serif;
+    font-size:16px; line-height:1.4; -webkit-font-smoothing:antialiased;
+    padding-bottom:calc(var(--nav-h) + 28px + env(safe-area-inset-bottom)); }
+  body::before{ content:""; position:fixed; inset:0; z-index:-1;
+    background:
+      radial-gradient(125% 90% at 88% -8%, rgba(51,226,155,.38), transparent 55%),
+      radial-gradient(120% 95% at -10% 108%, rgba(64,134,255,.28), transparent 55%),
+      radial-gradient(90% 70% at 50% 50%, rgba(80,40,160,.18), transparent 70%),
+      linear-gradient(180deg,#0B1311,#080C0B); }
+  .wrap{ max-width:520px; margin:0 auto; padding:16px 16px 0; }
+  .num{ font-variant-numeric:tabular-nums; }
+  .muted{ color:var(--hint); }
+  .eyebrow{ font-size:11px; letter-spacing:.12em; text-transform:uppercase; color:var(--hint); font-weight:700; }
+  .card{ background:var(--glass); -webkit-backdrop-filter:var(--blur); backdrop-filter:var(--blur); border:1px solid var(--glass-brd); border-radius:var(--r); box-shadow:var(--shadow), var(--hi); padding:18px; margin-bottom:14px; }
+  h2.title{ font-size:22px; font-weight:800; margin:6px 4px 14px; }
+
+  #login{ position:fixed; inset:0; display:flex; align-items:center; justify-content:center; padding:24px; z-index:200; }
+  #login .box{ width:100%; max-width:360px; text-align:center; padding:30px 24px; background:var(--glass); -webkit-backdrop-filter:var(--blur); backdrop-filter:var(--blur); border:1px solid var(--glass-brd); border-radius:28px; box-shadow:var(--shadow), var(--hi); }
+  #login img{ width:84px; height:84px; border-radius:22px; margin-bottom:16px; box-shadow:var(--glow); }
+  #login h1{ font-size:24px; font-weight:800; margin:0 0 6px; }
+  #login p{ color:var(--hint); font-size:14px; margin:0 0 24px; }
+  .gbtn{ width:100%; border:none; background:#fff; color:#1f2328; font-size:16px; font-weight:700; padding:14px; border-radius:14px; cursor:pointer; display:flex; align-items:center; justify-content:center; gap:10px; box-shadow:var(--shadow); }
+  .gbtn:active{ transform:translateY(1px); } .gbtn svg{ width:20px; height:20px; }
+  #loginErr{ color:var(--expense); font-size:12.5px; margin-top:14px; min-height:16px; }
+
+  .stat3{ display:grid; grid-template-columns:1fr 1fr 1fr; gap:10px; margin-bottom:14px; }
+  .stat{ border-radius:18px; padding:14px 10px; text-align:center; background:var(--glass); -webkit-backdrop-filter:var(--blur); backdrop-filter:var(--blur); border:1px solid var(--glass-brd); box-shadow:var(--shadow), var(--hi); }
+  .stat .v{ font-size:24px; font-weight:800; } .stat .l{ font-size:11px; color:var(--hint); margin-top:2px; }
+
+  .bigbtn{ width:100%; border:none; background:linear-gradient(100deg,var(--green),var(--green2)); color:var(--on-accent); font-size:17px; font-weight:800; padding:17px; border-radius:18px; cursor:pointer; box-shadow:var(--glow), var(--hi); }
+  .bigbtn:active{ transform:translateY(1px); }
+  .ghostbtn{ width:100%; border:1px solid var(--glass-brd); background:var(--glass); color:var(--text); font-size:15px; font-weight:700; padding:13px; border-radius:14px; cursor:pointer; margin-top:6px; }
+
+  .ex{ margin-bottom:14px; }
+  .ex .head{ display:flex; align-items:center; justify-content:space-between; gap:8px; margin-bottom:10px; }
+  .ex .head .nm{ font-weight:800; font-size:17px; }
+  .setrow{ display:flex; align-items:center; gap:8px; padding:7px 0; border-top:1px solid var(--line); }
+  .setrow:first-of-type{ border-top:none; }
+  .setrow .idx{ width:24px; height:24px; border-radius:8px; background:rgba(255,255,255,.08); display:grid; place-items:center; font-size:12px; font-weight:800; color:var(--hint); flex:none; }
+  .setrow input{ width:100%; border:none; background:rgba(255,255,255,.06); color:var(--text); padding:10px; border-radius:11px; font-size:16px; text-align:center; outline:none; font-family:inherit; font-variant-numeric:tabular-nums; }
+  .setrow .x{ color:var(--hint); font-weight:800; flex:none; }
+  .setrow .u{ color:var(--hint); font-size:13px; flex:none; }
+  .setrow .del{ border:none; background:transparent; color:var(--hint); padding:6px; cursor:pointer; flex:none; }
+  .addset{ margin-top:8px; border:none; background:rgba(255,255,255,.07); color:var(--green); font-weight:800; font-size:14px; padding:10px; border-radius:12px; width:100%; cursor:pointer; }
+  .exadd{ display:flex; gap:8px; margin-top:6px; }
+  .exadd input{ flex:1; border:none; background:var(--glass); color:var(--text); padding:14px; border-radius:14px; font-size:16px; outline:none; font-family:inherit; border:1px solid var(--glass-brd); }
+  .exadd button{ border:none; background:var(--green); color:var(--on-accent); font-weight:800; padding:0 18px; border-radius:14px; cursor:pointer; }
+
+  .sessioncard .date{ font-weight:800; font-size:16px; }
+  .sessioncard .sub{ font-size:12.5px; color:var(--hint); margin-top:2px; }
+  .exline{ display:flex; justify-content:space-between; gap:10px; padding:9px 0; border-top:1px solid var(--line); font-size:14px; }
+  .exline:first-of-type{ border-top:none; }
+  .exline .sets{ color:var(--hint); font-variant-numeric:tabular-nums; white-space:nowrap; }
+
+  .chips{ display:flex; flex-wrap:wrap; gap:8px; margin-bottom:14px; }
+  .chip{ border:none; color:var(--text); padding:9px 14px; border-radius:13px; font-size:14px; font-weight:700; cursor:pointer; background:var(--glass); border:1px solid var(--glass-brd); box-shadow:var(--hi); }
+  .chip.on{ background:var(--green); color:var(--on-accent); box-shadow:var(--glow); border-color:transparent; }
+  .chartbox{ position:relative; height:240px; }
+  .pr{ display:flex; justify-content:space-between; padding:10px 0; border-top:1px solid var(--line); font-size:14px; }
+  .pr:first-of-type{ border-top:none; } .pr b{ color:var(--green); }
+
+  .section-title{ font-size:12px; font-weight:800; color:var(--hint); margin:18px 4px 10px; text-transform:uppercase; letter-spacing:.1em; }
+  .empty{ text-align:center; color:var(--hint); padding:28px 10px; font-size:14px; }
+  .del2{ border:none; background:transparent; color:var(--hint); padding:7px; cursor:pointer; border-radius:10px; }
+  .signout{ display:block; margin:22px auto 8px; background:transparent; border:1px solid var(--glass-brd); color:var(--hint); font-size:13px; font-weight:700; padding:9px 18px; border-radius:12px; cursor:pointer; }
+
+  .nav{ position:fixed; left:14px; right:14px; bottom:calc(env(safe-area-inset-bottom) + 12px); height:var(--nav-h); display:flex; z-index:50; border-radius:28px; background:rgba(255,255,255,.08); -webkit-backdrop-filter:saturate(180%) blur(30px); backdrop-filter:saturate(180%) blur(30px); border:1px solid var(--glass-brd); box-shadow:0 18px 40px -12px rgba(0,0,0,.6), var(--hi); }
+  .nav button{ flex:1; border:none; background:transparent; color:var(--hint); cursor:pointer; display:flex; flex-direction:column; align-items:center; justify-content:center; gap:3px; font-size:11px; font-weight:700; }
+  .nav button.on{ color:var(--green); } .nav button svg{ width:24px; height:24px; }
+
+  .toast{ position:fixed; left:50%; bottom:calc(var(--nav-h) + 34px + env(safe-area-inset-bottom)); transform:translateX(-50%) translateY(20px); background:var(--glass-strong); -webkit-backdrop-filter:var(--blur); backdrop-filter:var(--blur); border:1px solid var(--glass-brd); color:var(--text); padding:12px 22px; border-radius:99px; font-size:14px; font-weight:800; opacity:0; transition:.25s; z-index:100; pointer-events:none; box-shadow:var(--shadow), var(--hi); }
+  .toast.show{ opacity:1; transform:translateX(-50%) translateY(0); }
+  .hidden{ display:none !important; }
+</style>
+</head>
+<body>
+
+<div id="login">
+  <div class="box">
+    <img src="icon-192.png" alt="" />
+    <h1>Мої тренування</h1>
+    <p id="loginSub">Записуй вправи, підходи та прогрес 💪<br>Увійди, щоб продовжити.</p>
+    <button class="gbtn" id="loginBtn">
+      <svg viewBox="0 0 48 48"><path fill="#EA4335" d="M24 9.5c3.5 0 6.6 1.2 9 3.6l6.7-6.7C35.6 2.7 30.2 0 24 0 14.6 0 6.5 5.4 2.6 13.2l7.8 6.1C12.3 13.2 17.7 9.5 24 9.5z"/><path fill="#4285F4" d="M46.5 24.5c0-1.6-.1-3.1-.4-4.5H24v9h12.7c-.6 3-2.3 5.5-4.8 7.2l7.4 5.7C43.9 37.9 46.5 31.8 46.5 24.5z"/><path fill="#FBBC05" d="M10.4 28.3c-.5-1.4-.8-3-.8-4.6s.3-3.2.8-4.6l-7.8-6.1C1 16.1 0 19.9 0 23.7s1 7.6 2.6 10.7l7.8-6.1z"/><path fill="#34A853" d="M24 48c6.2 0 11.5-2 15.3-5.5l-7.4-5.7c-2 1.4-4.7 2.3-7.9 2.3-6.3 0-11.7-3.7-13.6-9.1l-7.8 6.1C6.5 42.6 14.6 48 24 48z"/></svg>
+      Увійти через Google
+    </button>
+    <div id="loginErr"></div>
+  </div>
+</div>
+
+<div id="app" class="hidden">
+<section id="screen-train" class="wrap screen">
+  <h2 class="title">Тренування</h2>
+  <div id="trainBody"></div>
+</section>
+
+<section id="screen-history" class="wrap screen hidden">
+  <h2 class="title">Історія</h2>
+  <div id="historyList"></div>
+  <button class="signout" id="signOutBtn">Вийти</button>
+</section>
+
+<section id="screen-progress" class="wrap screen hidden">
+  <h2 class="title">Прогрес</h2>
+  <div class="stat3">
+    <div class="stat"><div class="v num" id="stTotal">0</div><div class="l">усього</div></div>
+    <div class="stat"><div class="v num" id="stWeek">0</div><div class="l">цей тиждень</div></div>
+    <div class="stat"><div class="v num" id="stStreak">0</div><div class="l">днів поспіль</div></div>
+  </div>
+  <div class="card">
+    <div class="eyebrow">Прогрес по вправі (макс. вага)</div>
+    <div class="chips" id="exChips" style="margin-top:12px"></div>
+    <div class="chartbox" id="progBox"><canvas id="progChart"></canvas></div>
+  </div>
+  <div class="card">
+    <div class="eyebrow">Особисті рекорди</div>
+    <div id="prList" style="margin-top:8px"></div>
+  </div>
+</section>
+</div>
+
+<nav class="nav">
+  <button data-tab="train" class="on"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M6.5 6.5l11 11M3 8l2-2M5 16l-2 2M19 8l2-2M21 16l-2 2M8 3l-2 2M16 21l2-2"/><rect x="6" y="6" width="12" height="12" rx="2"/></svg>Тренування</button>
+  <button data-tab="history"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M8 6h12M8 12h12M8 18h12"/><path d="M4 6h.01M4 12h.01M4 18h.01"/></svg>Історія</button>
+  <button data-tab="progress"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M4 19l5-5 4 4 7-7"/><path d="M21 7v4h-4"/></svg>Прогрес</button>
+</nav>
+
+<input type="file" id="tcxInput" accept=".tcx,.gpx,application/xml,text/xml" style="display:none">
+<div class="toast" id="toast"></div>
+
+<script type="module">
+import { initializeApp } from "https://www.gstatic.com/firebasejs/12.15.0/firebase-app.js";
+import { getAuth, GoogleAuthProvider, signInWithPopup, signInWithRedirect, getRedirectResult, signOut, onAuthStateChanged } from "https://www.gstatic.com/firebasejs/12.15.0/firebase-auth.js";
+import { getFirestore, collection, query, where, onSnapshot, addDoc, updateDoc, deleteDoc, doc, serverTimestamp } from "https://www.gstatic.com/firebasejs/12.15.0/firebase-firestore.js";
+
+/* ===================== ВСТАВ СЮДИ СВІЙ КОНФІГ (той самий, що у фінансах) ===================== */
+const firebaseConfig = {
+  apiKey: "AIzaSyDDaqb2jQXwIjq5jghp134nONpH0tmjda4",
+  authDomain: "finansikibot.firebaseapp.com",
+  projectId: "finansikibot",
+  storageBucket: "finansikibot.firebasestorage.app",
+  messagingSenderId: "503012102916",
+  appId: "1:503012102916:web:90f832087f877b48a37651"
+};
+/* ========================================================================================= */
+
+const fb=initializeApp(firebaseConfig); const auth=getAuth(fb); const db=getFirestore(fb); const provider=new GoogleAuthProvider();
+
+function haptic(){ try{ navigator.vibrate&&navigator.vibrate(8); }catch(e){} }
+let toastTimer; function toast(m){ const el=document.getElementById('toast'); el.textContent=m; el.classList.add('show'); clearTimeout(toastTimer); toastTimer=setTimeout(function(){ el.classList.remove('show'); },1500); }
+function esc(s){ return String(s).replace(/[&<>"']/g,function(c){ return ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'})[c]; }); }
+function todayStr(){ return new Date().toISOString().slice(0,10); }
+function fdayLong(d){ const t=todayStr(); const y=new Date(Date.now()-864e5).toISOString().slice(0,10); if(d===t)return 'Сьогодні'; if(d===y)return 'Вчора'; return new Intl.DateTimeFormat('uk-UA',{weekday:'short',day:'numeric',month:'long'}).format(new Date(d+'T00:00:00')); }
+
+const LIB=['Жим лежачи','Присідання','Станова тяга','Жим стоячи','Підтягування','Тяга штанги','Біцепс','Трицепс','Випади','Жим ногами','Розведення гантелей','Тяга верх. блоку','Махи гантелями','Гіперекстензія','Планка','Прес','Віджимання','Ікри'];
+
+const state={ me:null, ready:false, sessions:[], active:null, tab:'train', progEx:null };
+
+function setsSummary(ex){ const n=ex.sets.length; if(!n)return '0 підходів'; const w=ex.sets.map(function(s){return s.weight||0;}); const maxw=Math.max.apply(null,w); const reps=ex.sets.map(function(s){return s.reps||0;}).join('/'); return n+'×('+reps+')'+(maxw>0?' · '+maxw+' кг':''); }
+
+/* ---------- IMPORT (TCX з годинника) ---------- */
+function fmtDur(sec){ sec=Math.round(sec||0); const m=Math.floor(sec/60), s=sec%60; if(m>=60){ const h=Math.floor(m/60); return h+' год '+(m%60)+' хв'; } return (m+' хв'+(s?(' '+s+' с'):'')).trim()||'0 хв'; }
+function fmtDist(m){ if(!m||m<=0) return ''; return m>=1000? (Math.round(m/10)/100)+' км' : Math.round(m)+' м'; }
+function gtag(root,name){ return root.getElementsByTagName(name); }
+function gtxt(root,name){ const e=gtag(root,name); return e.length? e[0].textContent.trim() : ''; }
+function localDateISO(iso){ const d=new Date(iso); if(isNaN(d.getTime())) return todayStr(); const y=d.getFullYear(),m=String(d.getMonth()+1).padStart(2,'0'),da=String(d.getDate()).padStart(2,'0'); return y+'-'+m+'-'+da; }
+function parseTcx(text){
+  const xml=new DOMParser().parseFromString(text,'application/xml');
+  if(xml.getElementsByTagName('parsererror').length) throw new Error('файл не схожий на TCX');
+  const acts=gtag(xml,'Activity'); if(!acts.length) throw new Error('у файлі немає тренування');
+  const act=acts[0];
+  let sport=(act.getAttribute('Sport')||'').replace(/^\s*\d{6,8}\s*/,'').trim();
+  let id=gtxt(act,'Id'); const laps=gtag(act,'Lap'); if(!id && laps.length) id=laps[0].getAttribute('StartTime')||'';
+  let dur=0,dist=0,cal=0;
+  for(let i=0;i<laps.length;i++){ dur+=parseFloat(gtxt(laps[i],'TotalTimeSeconds'))||0; dist+=parseFloat(gtxt(laps[i],'DistanceMeters'))||0; cal+=parseFloat(gtxt(laps[i],'Calories'))||0; }
+  const hrEls=gtag(act,'HeartRateBpm'); const hrs=[]; for(let i=0;i<hrEls.length;i++){ const v=gtag(hrEls[i],'Value'); if(v.length){ const n=parseFloat(v[0].textContent); if(n>0)hrs.push(n); } }
+  const avgHr=hrs.length?Math.round(hrs.reduce(function(a,b){return a+b;},0)/hrs.length):null;
+  const maxHr=hrs.length?Math.max.apply(null,hrs):null;
+  return { sport:sport||'Кардіо', startTime:id||'', date:localDateISO(id), durationSec:Math.round(dur), distanceM:Math.round(dist), calories:cal?Math.round(cal):null, avgHr:avgHr, maxHr:maxHr };
+}
+async function importTcx(file){
+  try{
+    const text=await file.text();
+    const w=parseTcx(text);
+    if(state.sessions.some(function(s){ return s.imported && s.startTime && s.startTime===w.startTime; })){ if(!confirm('Це тренування вже імпортоване. Додати ще раз?')) return; }
+    await addDoc(collection(db,'workouts'),{ userId:state.me, date:w.date, done:true, imported:true, sport:w.sport, startTime:w.startTime, durationSec:w.durationSec, distanceM:w.distanceM, calories:w.calories, avgHr:w.avgHr, maxHr:w.maxHr, exercises:[], createdAt:serverTimestamp() });
+    haptic(); toast('Імпортовано: '+w.sport+' ✓'); switchTab('history');
+  }catch(e){ alert('Не вдалося імпортувати: '+(e&&e.message?e.message:e)); }
+}
+
+/* ---------- TRAIN ---------- */
+let saveTimer=null;
+function saveActiveSoon(){ if(!state.active)return; clearTimeout(saveTimer); const snap=JSON.parse(JSON.stringify(state.active.exercises)); saveTimer=setTimeout(function(){ updateDoc(doc(db,'workouts',state.active.id),{exercises:snap}).catch(function(){}); },600); }
+async function startWorkout(){ try{ const ref=await addDoc(collection(db,'workouts'),{ userId:state.me, date:todayStr(), exercises:[], done:false, createdAt:serverTimestamp() }); haptic(); toast('Поїхали 💪'); }catch(e){ alert('Помилка: '+e.message); } }
+function addExercise(name){ name=(name||'').trim(); if(!name||!state.active)return; state.active.exercises.push({name:name.slice(0,60), sets:[{reps:10,weight:0}]}); saveActiveSoon(); renderTrain(); }
+function addSet(i){ const ex=state.active.exercises[i]; const last=ex.sets[ex.sets.length-1]; ex.sets.push({reps:last?last.reps:10, weight:last?last.weight:0}); saveActiveSoon(); renderTrain(); }
+function delSet(i,j){ state.active.exercises[i].sets.splice(j,1); saveActiveSoon(); renderTrain(); }
+function delEx(i){ state.active.exercises.splice(i,1); saveActiveSoon(); renderTrain(); }
+function editSet(i,j,f,v){ state.active.exercises[i].sets[j][f]=v===''?0:Math.max(0,Number(v)); saveActiveSoon(); }
+async function finishWorkout(){ if(!state.active)return; try{ await updateDoc(doc(db,'workouts',state.active.id),{exercises:state.active.exercises, done:true}); haptic(); toast('Тренування збережено ✓'); }catch(e){ alert(e.message); } }
+async function cancelWorkout(){ if(!state.active)return; if(!confirm('Скасувати це тренування?'))return; try{ await deleteDoc(doc(db,'workouts',state.active.id)); }catch(e){} }
+
+function renderTrain(){
+  const b=document.getElementById('trainBody'); b.innerHTML='';
+  if(!state.active){
+    const c=document.createElement('div'); c.className='card'; c.style.textAlign='center';
+    c.innerHTML='<div style="font-size:40px;margin:6px 0 10px">💪</div><div class="muted" style="margin-bottom:16px">Готовий тренуватись?</div>';
+    const btn=document.createElement('button'); btn.className='bigbtn'; btn.textContent='Почати тренування'; btn.onclick=function(){ haptic(); startWorkout(); };
+    c.appendChild(btn);
+    const imp=document.createElement('button'); imp.className='ghostbtn'; imp.textContent='⌚ Імпорт з годинника (.tcx)'; imp.onclick=function(){ document.getElementById('tcxInput').click(); };
+    c.appendChild(imp);
+    b.appendChild(c);
+    if(state.sessions.length){ const lt=state.sessions.find(function(s){return s.done;}); if(lt){ const t=document.createElement('div'); t.className='section-title'; t.textContent='Останнє тренування'; b.appendChild(t); b.appendChild(sessionCard(lt,false)); } }
+    return;
+  }
+  const head=document.createElement('div'); head.className='card';
+  head.innerHTML='<div class="eyebrow">Сьогодні · '+state.active.exercises.length+' вправ</div>';
+  b.appendChild(head);
+  state.active.exercises.forEach(function(ex,i){
+    const c=document.createElement('div'); c.className='card ex';
+    const h=document.createElement('div'); h.className='head';
+    h.innerHTML='<div class="nm">'+esc(ex.name)+'</div>';
+    const dx=document.createElement('button'); dx.className='del2'; dx.innerHTML='✕'; dx.onclick=function(){ delEx(i); };
+    h.appendChild(dx); c.appendChild(h);
+    ex.sets.forEach(function(s,j){
+      const r=document.createElement('div'); r.className='setrow';
+      r.innerHTML='<span class="idx">'+(j+1)+'</span>';
+      const ri=document.createElement('input'); ri.type='number'; ri.inputMode='numeric'; ri.value=s.reps||''; ri.placeholder='повт.'; ri.onchange=function(){ editSet(i,j,'reps',ri.value); };
+      const x=document.createElement('span'); x.className='x'; x.textContent='×';
+      const wi=document.createElement('input'); wi.type='number'; wi.inputMode='decimal'; wi.value=s.weight||''; wi.placeholder='0'; wi.onchange=function(){ editSet(i,j,'weight',wi.value); };
+      const u=document.createElement('span'); u.className='u'; u.textContent='кг';
+      const dd=document.createElement('button'); dd.className='del'; dd.innerHTML='🗑'; dd.onclick=function(){ delSet(i,j); };
+      r.appendChild(ri); r.appendChild(x); r.appendChild(wi); r.appendChild(u); r.appendChild(dd);
+      c.appendChild(r);
+    });
+    const as=document.createElement('button'); as.className='addset'; as.textContent='+ підхід'; as.onclick=function(){ haptic(); addSet(i); };
+    c.appendChild(as); b.appendChild(c);
+  });
+  // add exercise
+  const addc=document.createElement('div'); addc.className='card';
+  addc.innerHTML='<div class="eyebrow" style="margin-bottom:10px">Додати вправу</div>';
+  const wrapA=document.createElement('div'); wrapA.className='exadd';
+  const inp=document.createElement('input'); inp.placeholder='Назва вправи'; inp.setAttribute('list','exlib');
+  const dl=document.createElement('datalist'); dl.id='exlib'; LIB.forEach(function(n){ const o=document.createElement('option'); o.value=n; dl.appendChild(o); });
+  const ab=document.createElement('button'); ab.textContent='+'; ab.onclick=function(){ addExercise(inp.value); inp.value=''; };
+  wrapA.appendChild(inp); wrapA.appendChild(ab); addc.appendChild(wrapA); addc.appendChild(dl);
+  const chips=document.createElement('div'); chips.className='chips'; chips.style.marginTop='12px';
+  LIB.slice(0,8).forEach(function(n){ const ch=document.createElement('button'); ch.className='chip'; ch.textContent=n; ch.onclick=function(){ haptic(); addExercise(n); }; chips.appendChild(ch); });
+  addc.appendChild(chips); b.appendChild(addc);
+  // finish
+  const fin=document.createElement('button'); fin.className='bigbtn'; fin.textContent='Завершити тренування'; fin.onclick=function(){ haptic(); finishWorkout(); }; b.appendChild(fin);
+  const can=document.createElement('button'); can.className='ghostbtn'; can.textContent='Скасувати'; can.onclick=cancelWorkout; b.appendChild(can);
+}
+
+function sessionCard(s,withDel){
+  const c=document.createElement('div'); c.className='card sessioncard';
+  const head=document.createElement('div'); head.style.display='flex'; head.style.justifyContent='space-between'; head.style.alignItems='center';
+  let sub;
+  if(s.imported){ const parts=[]; if(s.durationSec)parts.push(fmtDur(s.durationSec)); const ds=fmtDist(s.distanceM); if(ds)parts.push(ds); if(s.calories)parts.push(s.calories+' ккал'); sub='⌚ '+esc(s.sport||'Кардіо')+(parts.length?' · '+parts.join(' · '):''); }
+  else { const totalSets=s.exercises.reduce(function(a,e){return a+e.sets.length;},0); sub=s.exercises.length+' вправ · '+totalSets+' підходів'+(s.done?'':' · <span style="color:var(--green)">активне</span>'); }
+  head.innerHTML='<div><div class="date">'+fdayLong(s.date)+'</div><div class="sub">'+sub+'</div></div>';
+  if(withDel){ const d=document.createElement('button'); d.className='del2'; d.innerHTML='🗑'; d.onclick=function(){ delSession(s.id); }; head.appendChild(d); }
+  c.appendChild(head);
+  if(s.imported){ if(s.avgHr||s.maxHr){ const hr=document.createElement('div'); hr.className='exline'; hr.innerHTML='<span>Пульс (сер./макс.)</span><span class="sets">'+(s.avgHr||'—')+' / '+(s.maxHr||'—')+' уд/хв</span>'; c.appendChild(hr); } }
+  else { s.exercises.forEach(function(ex){ const l=document.createElement('div'); l.className='exline'; l.innerHTML='<span>'+esc(ex.name)+'</span><span class="sets">'+esc(setsSummary(ex))+'</span>'; c.appendChild(l); }); if(!s.exercises.length){ const e=document.createElement('div'); e.className='muted'; e.style.fontSize='13px'; e.style.marginTop='8px'; e.textContent='Порожнє тренування'; c.appendChild(e); } }
+  return c;
+}
+async function delSession(id){ if(!confirm('Видалити це тренування?'))return; try{ await deleteDoc(doc(db,'workouts',id)); haptic(); toast('Видалено'); }catch(e){ alert(e.message); } }
+
+function renderHistory(){
+  const list=document.getElementById('historyList'); list.innerHTML='';
+  const done=state.sessions.filter(function(s){return s.done;});
+  if(!done.length){ list.innerHTML='<div class="empty">Ще немає завершених тренувань.</div>'; return; }
+  done.forEach(function(s){ list.appendChild(sessionCard(s,true)); });
+}
+
+/* ---------- PROGRESS ---------- */
+let progChart;
+function allExerciseNames(){ const set={}; state.sessions.forEach(function(s){ if(!s.done)return; s.exercises.forEach(function(e){ set[e.name]=true; }); }); return Object.keys(set); }
+function maxWeightOf(ex){ let m=0; ex.sets.forEach(function(s){ if((s.weight||0)>m)m=s.weight; }); return m; }
+function renderProgress(){
+  const done=state.sessions.filter(function(s){return s.done;});
+  document.getElementById('stTotal').textContent=done.length;
+  const weekAgo=new Date(Date.now()-6*864e5).toISOString().slice(0,10);
+  document.getElementById('stWeek').textContent=done.filter(function(s){return s.date>=weekAgo;}).length;
+  document.getElementById('stStreak').textContent=streak(done);
+  // exercise chips
+  const names=allExerciseNames(); const chipsEl=document.getElementById('exChips'); chipsEl.innerHTML='';
+  if(!names.length){ document.getElementById('progBox').innerHTML='<div class="empty">Поки немає даних</div>'; }
+  if(names.length && (!state.progEx || names.indexOf(state.progEx)<0)) state.progEx=names[0];
+  names.forEach(function(n){ const ch=document.createElement('button'); ch.className='chip'+(state.progEx===n?' on':''); ch.textContent=n; ch.onclick=function(){ state.progEx=n; haptic(); renderProgress(); }; chipsEl.appendChild(ch); });
+  // chart: max weight per session over time for selected exercise
+  if(state.progEx && typeof Chart!=='undefined'){
+    document.getElementById('progBox').innerHTML='<canvas id="progChart"></canvas>';
+    const pts=[]; done.slice().reverse().forEach(function(s){ const ex=s.exercises.find(function(e){return e.name===state.progEx;}); if(ex){ const m=maxWeightOf(ex); if(m>0) pts.push({x:s.date,y:m}); } });
+    const tc=getComputedStyle(document.body).getPropertyValue('--text').trim()||'#eee';
+    if(progChart)progChart.destroy();
+    progChart=new Chart(document.getElementById('progChart'),{ type:'line', data:{ labels:pts.map(function(p){return new Intl.DateTimeFormat('uk-UA',{day:'numeric',month:'short'}).format(new Date(p.x+'T00:00:00'));}), datasets:[{ label:'Макс. вага, кг', data:pts.map(function(p){return p.y;}), borderColor:'#33E29B', backgroundColor:'rgba(51,226,155,.15)', fill:true, tension:.3, pointRadius:4, pointBackgroundColor:'#33E29B' }] }, options:{ responsive:true, maintainAspectRatio:false, plugins:{ legend:{ labels:{ color:tc } } }, scales:{ x:{ ticks:{color:tc}, grid:{display:false} }, y:{ ticks:{color:tc}, grid:{color:'rgba(255,255,255,.08)'}, beginAtZero:true } } } });
+  }
+  // PRs
+  const pr={}; done.forEach(function(s){ s.exercises.forEach(function(e){ const m=maxWeightOf(e); if(m>(pr[e.name]||0)) pr[e.name]=m; }); });
+  const prl=document.getElementById('prList'); prl.innerHTML='';
+  const keys=Object.keys(pr).filter(function(k){return pr[k]>0;}).sort(function(a,b){return pr[b]-pr[a];});
+  if(!keys.length){ prl.innerHTML='<div class="muted" style="font-size:13px">Запиши ваги — тут з\'являться рекорди.</div>'; }
+  keys.forEach(function(k){ const d=document.createElement('div'); d.className='pr'; d.innerHTML='<span>'+esc(k)+'</span><b>'+pr[k]+' кг</b>'; prl.appendChild(d); });
+}
+function streak(done){ if(!done.length)return 0; const days={}; done.forEach(function(s){ days[s.date]=true; }); let c=0; let d=new Date(); for(;;){ const ds=d.toISOString().slice(0,10); if(days[ds]){ c++; d.setDate(d.getDate()-1); } else if(c===0 && ds===todayStr()){ d.setDate(d.getDate()-1); } else break; } return c; }
+
+/* ---------- tabs ---------- */
+function switchTab(t){ state.tab=t; ['train','history','progress'].forEach(function(x){ document.getElementById('screen-'+x).classList.toggle('hidden',x!==t); }); document.querySelectorAll('.nav button').forEach(function(b){ b.classList.toggle('on',b.dataset.tab===t); }); window.scrollTo(0,0); renderActive(); }
+function renderActive(){ if(!state.ready)return; if(state.tab==='train')renderTrain(); else if(state.tab==='history')renderHistory(); else renderProgress(); }
+
+document.querySelectorAll('.nav button').forEach(function(b){ b.onclick=function(){ haptic(); switchTab(b.dataset.tab); }; });
+document.getElementById('signOutBtn').onclick=function(){ signOut(auth); };
+document.getElementById('tcxInput').onchange=function(e){ const f=e.target.files&&e.target.files[0]; if(f) importTcx(f); e.target.value=''; };
+document.getElementById('loginBtn').onclick=async function(){ document.getElementById('loginErr').textContent=''; try{ await signInWithPopup(auth,provider); }catch(e){ if(e&&(e.code==='auth/popup-blocked'||e.code==='auth/operation-not-supported-in-this-environment'||e.code==='auth/cancelled-popup-request'||e.code==='auth/popup-closed-by-user')){ try{ await signInWithRedirect(auth,provider); }catch(e2){ document.getElementById('loginErr').textContent=e2.message; } } else { document.getElementById('loginErr').textContent=e.message; } } };
+getRedirectResult(auth).catch(function(){});
+
+function showLogin(){ state.ready=false; document.getElementById('app').classList.add('hidden'); document.getElementById('login').classList.remove('hidden'); }
+function showApp(){ state.ready=true; document.getElementById('login').classList.add('hidden'); document.getElementById('app').classList.remove('hidden'); }
+function showDenied(m){ state.ready=false; document.getElementById('login').classList.remove('hidden'); document.getElementById('app').classList.add('hidden'); document.getElementById('loginSub').textContent=m||'Немає доступу.'; }
+
+let unsub=null;
+onAuthStateChanged(auth, function(user){
+  if(unsub){ unsub(); unsub=null; }
+  if(!user){ showLogin(); return; }
+  state.me=user.uid; showApp();
+  unsub=onSnapshot(query(collection(db,'workouts'), where('userId','==',user.uid)), function(snap){
+    state.sessions=snap.docs.map(function(d){ return Object.assign({id:d.id},d.data()); }).sort(function(a,b){ if(a.date<b.date)return 1; if(a.date>b.date)return -1; return (tsMs(b.createdAt))-(tsMs(a.createdAt)); });
+    state.active=state.sessions.find(function(s){ return !s.done; })||null;
+    renderActive();
+  }, function(err){ showDenied('Доступ заборонено для цього акаунту.'); });
+});
+function tsMs(c){ return c&&c.toMillis?c.toMillis():(typeof c==='number'?c:0); }
+
+if('serviceWorker' in navigator){ navigator.serviceWorker.register('sw.js').catch(function(){}); }
+</script>
+</body>
+</html>
