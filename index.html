@@ -71,6 +71,14 @@
   .exadd{ display:flex; gap:8px; margin-top:6px; }
   .exadd input{ flex:1; border:none; background:var(--glass); color:var(--text); padding:14px; border-radius:14px; font-size:16px; outline:none; font-family:inherit; border:1px solid var(--glass-brd); }
   .exadd button{ border:none; background:var(--green); color:var(--on-accent); font-weight:800; padding:0 18px; border-radius:14px; cursor:pointer; }
+  .addphoto{ margin-top:6px; border:1px solid var(--glass-brd); background:rgba(255,255,255,.07); color:var(--green); font-weight:800; font-size:14px; padding:12px; border-radius:12px; width:100%; cursor:pointer; }
+
+  .photos{ display:flex; flex-wrap:wrap; gap:8px; margin-top:12px; }
+  .photowrap{ position:relative; }
+  .photos img{ width:74px; height:74px; object-fit:cover; border-radius:12px; border:1px solid var(--glass-brd); cursor:pointer; display:block; }
+  .photowrap .rm{ position:absolute; top:-6px; right:-6px; width:22px; height:22px; border-radius:50%; background:var(--expense); color:#fff; border:2px solid #0B1311; font-size:11px; font-weight:800; cursor:pointer; display:grid; place-items:center; }
+  .lightbox{ position:fixed; inset:0; background:rgba(0,0,0,.92); display:flex; align-items:center; justify-content:center; z-index:400; padding:16px; }
+  .lightbox img{ max-width:100%; max-height:100%; border-radius:14px; }
 
   .sessioncard .date{ font-weight:800; font-size:16px; }
   .sessioncard .sub{ font-size:12.5px; color:var(--hint); margin-top:2px; }
@@ -96,17 +104,6 @@
 
   .toast{ position:fixed; left:50%; bottom:calc(var(--nav-h) + 34px + env(safe-area-inset-bottom)); transform:translateX(-50%) translateY(20px); background:var(--glass-strong); -webkit-backdrop-filter:var(--blur); backdrop-filter:var(--blur); border:1px solid var(--glass-brd); color:var(--text); padding:12px 22px; border-radius:99px; font-size:14px; font-weight:800; opacity:0; transition:.25s; z-index:100; pointer-events:none; box-shadow:var(--shadow), var(--hi); }
   .toast.show{ opacity:1; transform:translateX(-50%) translateY(0); }
-  .modal{ position:fixed; inset:0; background:rgba(0,0,0,.55); -webkit-backdrop-filter:blur(6px); backdrop-filter:blur(6px); display:flex; align-items:flex-end; justify-content:center; z-index:300; }
-  .modal .sheet{ width:100%; max-width:520px; background:rgba(18,24,22,.94); -webkit-backdrop-filter:var(--blur); backdrop-filter:var(--blur); border:1px solid var(--glass-brd); border-radius:26px 26px 0 0; padding:20px 18px calc(18px + env(safe-area-inset-bottom)); box-shadow:0 -10px 40px rgba(0,0,0,.55), var(--hi); max-height:90vh; overflow:auto; }
-  .modal h3{ font-size:19px; font-weight:800; margin:2px 0 14px; }
-  .imode{ display:flex; gap:8px; margin-bottom:16px; }
-  .imode button{ flex:1; border:none; background:rgba(255,255,255,.07); color:var(--hint); font-weight:800; font-size:13px; padding:11px; border-radius:12px; cursor:pointer; border:1px solid var(--glass-brd); }
-  .imode button.on{ background:var(--green); color:var(--on-accent); border-color:transparent; }
-  .fld{ margin-bottom:12px; } .fld label{ font-size:12px; color:var(--hint); font-weight:700; display:block; margin:0 2px 6px; }
-  .fld input{ width:100%; border:none; background:rgba(255,255,255,.06); color:var(--text); padding:13px; border-radius:12px; font-size:16px; outline:none; font-family:inherit; border:1px solid var(--glass-brd); }
-  .fld input[type=date]{ color-scheme:dark; }
-  .row2{ display:grid; grid-template-columns:1fr 1fr; gap:10px; }
-  textarea.tcxta{ width:100%; min-height:120px; border:none; background:rgba(255,255,255,.06); color:var(--text); padding:12px; border-radius:12px; font-size:12px; font-family:ui-monospace,Menlo,monospace; outline:none; border:1px solid var(--glass-brd); resize:vertical; }
   .hidden{ display:none !important; }
 </style>
 </head>
@@ -162,49 +159,8 @@
   <button data-tab="progress"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M4 19l5-5 4 4 7-7"/><path d="M21 7v4h-4"/></svg>Прогрес</button>
 </nav>
 
-<div id="importModal" class="modal hidden">
-  <div class="sheet">
-    <h3>Імпорт тренування</h3>
-    <div class="imode">
-      <button data-m="manual" class="on">Вручну</button>
-      <button data-m="photo">Фото</button>
-      <button data-m="paste">Текст</button>
-      <button data-m="file">Файл</button>
-    </div>
-    <div id="im-manual">
-      <div class="fld"><label>Назва</label><input id="imName" type="text" placeholder="Кардіо / Бігова доріжка" /></div>
-      <div class="row2">
-        <div class="fld"><label>Дата</label><input id="imDate" type="date" /></div>
-        <div class="fld"><label>Тривалість, хв</label><input id="imDur" type="number" inputmode="numeric" placeholder="30" /></div>
-      </div>
-      <div class="row2">
-        <div class="fld"><label>Дистанція, км</label><input id="imDist" type="number" inputmode="decimal" placeholder="0" /></div>
-        <div class="fld"><label>Калорії</label><input id="imCal" type="number" inputmode="numeric" placeholder="0" /></div>
-      </div>
-      <div class="row2">
-        <div class="fld"><label>Сер. пульс</label><input id="imAvg" type="number" inputmode="numeric" placeholder="0" /></div>
-        <div class="fld"><label>Макс. пульс</label><input id="imMax" type="number" inputmode="numeric" placeholder="0" /></div>
-      </div>
-      <button class="bigbtn" id="imSaveManual">Додати тренування</button>
-    </div>
-    <div id="im-photo" class="hidden">
-      <p class="muted" style="font-size:13.5px;line-height:1.5">Обери <b>скріншот</b> тренування з Mi Fitness. Апка спробує зчитати дату, тривалість, калорії та пульс і підставить у форму — перевіриш і збережеш. Скріншоти читаються краще, ніж фото екрана.</p>
-      <input type="file" id="ocrInput" accept="image/*" style="display:none">
-      <button class="bigbtn" id="ocrPick">Обрати фото / скріншот</button>
-      <div id="ocrStatus" class="muted" style="font-size:13px;margin-top:12px"></div>
-    </div>
-    <div id="im-paste" class="hidden">
-      <div class="fld"><label>Встав сюди весь вміст .tcx-файлу</label><textarea class="tcxta" id="imPaste" placeholder="&lt;?xml version=..."></textarea></div>
-      <button class="bigbtn" id="imSavePaste">Розпарсити й додати</button>
-    </div>
-    <div id="im-file" class="hidden">
-      <p class="muted" style="font-size:13.5px;line-height:1.5">Обери <b>.tcx</b>-файл. Якщо він сірий — спершу відкрий його один раз у застосунку «Файли» (щоб завантажився з iCloud), тоді повернись і обери.</p>
-      <button class="bigbtn" id="imPickFile">Обрати файл</button>
-    </div>
-    <button class="ghostbtn" id="imClose" style="margin-top:14px">Закрити</button>
-  </div>
-</div>
-<input type="file" id="tcxInput" style="display:none">
+<input type="file" id="photoInput" accept="image/*" style="display:none">
+<div id="lightbox" class="lightbox hidden"><img id="lbImg" src="" alt=""></div>
 <div class="toast" id="toast"></div>
 
 <script type="module">
@@ -212,7 +168,7 @@ import { initializeApp } from "https://www.gstatic.com/firebasejs/12.15.0/fireba
 import { getAuth, GoogleAuthProvider, signInWithPopup, signInWithRedirect, getRedirectResult, signOut, onAuthStateChanged } from "https://www.gstatic.com/firebasejs/12.15.0/firebase-auth.js";
 import { getFirestore, collection, query, where, onSnapshot, addDoc, updateDoc, deleteDoc, doc, serverTimestamp } from "https://www.gstatic.com/firebasejs/12.15.0/firebase-firestore.js";
 
-/* ===================== ВСТАВ СЮДИ СВІЙ КОНФІГ (той самий, що у фінансах) ===================== */
+/* ===================== ВСТАВ СЮДИ СВІЙ КОНФІГ (той самий, що працює зараз) ===================== */
 const firebaseConfig = {
   apiKey: "AIzaSyDDaqb2jQXwIjq5jghp134nONpH0tmjda4",
   authDomain: "finansikibot.firebaseapp.com",
@@ -221,7 +177,7 @@ const firebaseConfig = {
   messagingSenderId: "503012102916",
   appId: "1:503012102916:web:90f832087f877b48a37651"
 };
-/* ========================================================================================= */
+/* ============================================================================================ */
 
 const fb=initializeApp(firebaseConfig); const auth=getAuth(fb); const db=getFirestore(fb); const provider=new GoogleAuthProvider();
 
@@ -230,102 +186,55 @@ let toastTimer; function toast(m){ const el=document.getElementById('toast'); el
 function esc(s){ return String(s).replace(/[&<>"']/g,function(c){ return ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'})[c]; }); }
 function todayStr(){ return new Date().toISOString().slice(0,10); }
 function fdayLong(d){ const t=todayStr(); const y=new Date(Date.now()-864e5).toISOString().slice(0,10); if(d===t)return 'Сьогодні'; if(d===y)return 'Вчора'; return new Intl.DateTimeFormat('uk-UA',{weekday:'short',day:'numeric',month:'long'}).format(new Date(d+'T00:00:00')); }
+function fmtDur(sec){ sec=Math.round(sec||0); const m=Math.floor(sec/60), s=sec%60; if(m>=60){ const h=Math.floor(m/60); return h+' год '+(m%60)+' хв'; } return (m+' хв'+(s?(' '+s+' с'):'')).trim()||'0 хв'; }
+function fmtDist(m){ if(!m||m<=0) return ''; return m>=1000? (Math.round(m/10)/100)+' км' : Math.round(m)+' м'; }
 
 const LIB=['Жим лежачи','Присідання','Станова тяга','Жим стоячи','Підтягування','Тяга штанги','Біцепс','Трицепс','Випади','Жим ногами','Розведення гантелей','Тяга верх. блоку','Махи гантелями','Гіперекстензія','Планка','Прес','Віджимання','Ікри'];
-
 const state={ me:null, ready:false, sessions:[], active:null, tab:'train', progEx:null };
 
 function setsSummary(ex){ const n=ex.sets.length; if(!n)return '0 підходів'; const w=ex.sets.map(function(s){return s.weight||0;}); const maxw=Math.max.apply(null,w); const reps=ex.sets.map(function(s){return s.reps||0;}).join('/'); return n+'×('+reps+')'+(maxw>0?' · '+maxw+' кг':''); }
 
-/* ---------- IMPORT (TCX з годинника) ---------- */
-function fmtDur(sec){ sec=Math.round(sec||0); const m=Math.floor(sec/60), s=sec%60; if(m>=60){ const h=Math.floor(m/60); return h+' год '+(m%60)+' хв'; } return (m+' хв'+(s?(' '+s+' с'):'')).trim()||'0 хв'; }
-function fmtDist(m){ if(!m||m<=0) return ''; return m>=1000? (Math.round(m/10)/100)+' км' : Math.round(m)+' м'; }
-function gtag(root,name){ return root.getElementsByTagName(name); }
-function gtxt(root,name){ const e=gtag(root,name); return e.length? e[0].textContent.trim() : ''; }
-function localDateISO(iso){ const d=new Date(iso); if(isNaN(d.getTime())) return todayStr(); const y=d.getFullYear(),m=String(d.getMonth()+1).padStart(2,'0'),da=String(d.getDate()).padStart(2,'0'); return y+'-'+m+'-'+da; }
-function parseTcx(text){
-  const xml=new DOMParser().parseFromString(text,'application/xml');
-  if(xml.getElementsByTagName('parsererror').length) throw new Error('файл не схожий на TCX');
-  const acts=gtag(xml,'Activity'); if(!acts.length) throw new Error('у файлі немає тренування');
-  const act=acts[0];
-  let sport=(act.getAttribute('Sport')||'').replace(/^\s*\d{6,8}\s*/,'').trim();
-  let id=gtxt(act,'Id'); const laps=gtag(act,'Lap'); if(!id && laps.length) id=laps[0].getAttribute('StartTime')||'';
-  let dur=0,dist=0,cal=0;
-  for(let i=0;i<laps.length;i++){ dur+=parseFloat(gtxt(laps[i],'TotalTimeSeconds'))||0; dist+=parseFloat(gtxt(laps[i],'DistanceMeters'))||0; cal+=parseFloat(gtxt(laps[i],'Calories'))||0; }
-  const hrEls=gtag(act,'HeartRateBpm'); const hrs=[]; for(let i=0;i<hrEls.length;i++){ const v=gtag(hrEls[i],'Value'); if(v.length){ const n=parseFloat(v[0].textContent); if(n>0)hrs.push(n); } }
-  const avgHr=hrs.length?Math.round(hrs.reduce(function(a,b){return a+b;},0)/hrs.length):null;
-  const maxHr=hrs.length?Math.max.apply(null,hrs):null;
-  return { sport:sport||'Кардіо', startTime:id||'', date:localDateISO(id), durationSec:Math.round(dur), distanceM:Math.round(dist), calories:cal?Math.round(cal):null, avgHr:avgHr, maxHr:maxHr };
+/* ---------- ФОТО ---------- */
+function compressImage(file){
+  return new Promise(function(res,rej){
+    var img=new Image(); var url=URL.createObjectURL(file);
+    img.onload=function(){ URL.revokeObjectURL(url);
+      var maxDim=1000, q=0.6;
+      function draw(){ var scale=Math.min(1,maxDim/Math.max(img.width,img.height)); var w=Math.round(img.width*scale),h=Math.round(img.height*scale); var c=document.createElement('canvas'); c.width=w;c.height=h; c.getContext('2d').drawImage(img,0,0,w,h); return c.toDataURL('image/jpeg',q); }
+      var d=draw(), guard=0;
+      while(d.length>340000 && guard<7){ if(q>0.4){ q-=0.12; } else { maxDim=Math.round(maxDim*0.82); } d=draw(); guard++; }
+      res(d);
+    };
+    img.onerror=function(){ URL.revokeObjectURL(url); rej(new Error('не вдалося відкрити зображення')); };
+    img.src=url;
+  });
 }
-async function saveImported(w){
+async function addPhoto(file){
+  if(!state.active){ alert('Спершу почни тренування'); return; }
   try{
-    if(w.startTime && state.sessions.some(function(s){ return s.imported && s.startTime===w.startTime; })){ if(!confirm('Це тренування вже додане. Додати ще раз?')) return; }
-    await addDoc(collection(db,'workouts'),{ userId:state.me, date:w.date||todayStr(), done:true, imported:true, sport:w.sport||'Кардіо', startTime:w.startTime||'', durationSec:w.durationSec||0, distanceM:w.distanceM||0, calories:w.calories||null, avgHr:w.avgHr||null, maxHr:w.maxHr||null, exercises:[], createdAt:serverTimestamp() });
-    haptic(); toast('Додано ✓'); closeImport(); switchTab('history');
-  }catch(e){ alert('Не вдалося зберегти: '+(e&&e.message?e.message:e)); }
+    var d=await compressImage(file);
+    state.active.photos=state.active.photos||[];
+    var total=state.active.photos.reduce(function(a,p){return a+p.length;},0)+d.length;
+    if(total>900000){ alert('Забагато фото в одному тренуванні (обмеження розміру). Видали якесь.'); return; }
+    state.active.photos.push(d);
+    await persistActive(); haptic(); toast('Фото додано ✓'); renderTrain();
+  }catch(e){ alert('Помилка фото: '+(e&&e.message?e.message:e)); }
 }
-async function importTcx(file){
-  try{ const text=await file.text(); const w=parseTcx(text); await saveImported(w); }
-  catch(e){ alert('Не вдалося імпортувати: '+(e&&e.message?e.message:e)); }
-}
-function openImport(){ document.getElementById('imDate').value=todayStr(); setImportMode('manual'); document.getElementById('importModal').classList.remove('hidden'); }
-function closeImport(){ document.getElementById('importModal').classList.add('hidden'); ['imName','imDur','imDist','imCal','imAvg','imMax','imPaste'].forEach(function(id){ var el=document.getElementById(id); if(el)el.value=''; }); var os=document.getElementById('ocrStatus'); if(os)os.textContent=''; }
-function setImportMode(m){ ['manual','photo','paste','file'].forEach(function(x){ document.getElementById('im-'+x).classList.toggle('hidden',x!==m); }); document.querySelectorAll('#importModal .imode button').forEach(function(b){ b.classList.toggle('on',b.dataset.m===m); }); }
-function numOrNull(id){ var v=document.getElementById(id).value; return v!==''?Math.round(Number(v)):null; }
-function saveManual(){ var name=(document.getElementById('imName').value||'').trim()||'Кардіо'; var w={ sport:name, date:document.getElementById('imDate').value||todayStr(), durationSec:Math.round((parseFloat(document.getElementById('imDur').value)||0)*60), distanceM:Math.round((parseFloat(document.getElementById('imDist').value)||0)*1000), calories:numOrNull('imCal'), avgHr:numOrNull('imAvg'), maxHr:numOrNull('imMax'), startTime:'' }; saveImported(w); }
-function savePaste(){ var t=document.getElementById('imPaste').value||''; if(!t.trim()){ alert('Встав вміст файлу'); return; } try{ var w=parseTcx(t); saveImported(w); }catch(e){ alert('Не схоже на TCX: '+(e&&e.message?e.message:e)); } }
-
-/* ---------- OCR фото (Mi Fitness) ---------- */
-function loadTesseract(){ return new Promise(function(res,rej){ if(window.Tesseract) return res(); var s=document.createElement('script'); s.src='https://cdn.jsdelivr.net/npm/tesseract.js@5/dist/tesseract.min.js'; s.onload=function(){ res(); }; s.onerror=function(){ rej(new Error('не вдалося завантажити OCR')); }; document.head.appendChild(s); }); }
-function hrOk(n){ return n>=35 && n<=230 ? n : null; }
-function parseMiText(t){
-  var s=(t||'').replace(/[’`]/g,"'"); var low=s.toLowerCase();
-  var date=''; var m=s.match(/(\d{4})[\/.\-](\d{1,2})[\/.\-](\d{1,2})/); if(m){ date=m[1]+'-'+String(+m[2]).padStart(2,'0')+'-'+String(+m[3]).padStart(2,'0'); }
-  var startTime=''; var dt=s.match(/\d{4}[\/.\-]\d{1,2}[\/.\-]\d{1,2}\D{0,3}(\d{1,2}:\d{2}:\d{2})/); if(dt) startTime=dt[1];
-  var times=[]; var re=/(\d{1,2}):(\d{2}):(\d{2})/g, mm; while((mm=re.exec(s))){ times.push({raw:mm[0], sec:(+mm[1])*3600+(+mm[2])*60+(+mm[3])}); }
-  var durationSec=0; var cand=times.filter(function(x){ return x.raw!==startTime && x.sec>0 && x.sec<6*3600; });
-  if(cand.length){ cand.sort(function(a,b){ return a.sec-b.sec; }); durationSec=cand[0].sec; } else if(times.length){ durationSec=times[0].sec; }
-  var cals=[]; var rc=/(\d{2,4})\s*ккал/g, cm; while((cm=rc.exec(low))){ cals.push(+cm[1]); }
-  var calories=cals.length?Math.max.apply(null,cals):null;
-  var avgHr=null,maxHr=null;
-  function findHr(lbl){ var mm2=low.match(new RegExp('(\\d{2,3})[^\\d]{0,8}'+lbl)); if(mm2){ var v=hrOk(+mm2[1]); if(v) return v; } mm2=low.match(new RegExp(lbl+'[^\\d]{0,8}(\\d{2,3})')); if(mm2) return hrOk(+mm2[1]); return null; }
-  maxHr=findHr('максим'); avgHr=findHr("серед[а-яії'\\s]*пульс");
-  if(avgHr==null){ var u=low.match(/(\d{2,3})\s*уд\/?\s*хв/); if(u) avgHr=hrOk(+u[1]); }
-  if(avgHr!=null && maxHr!=null && avgHr>maxHr){ var tp=avgHr; avgHr=maxHr; maxHr=tp; }
-  var sport='Тренування';
-  if(/силов/.test(low))sport='Силове тренування'; else if(/бігов|доріжк/.test(low))sport='Бігова доріжка'; else if(/ходьб/.test(low))sport='Ходьба'; else if(/велосип/.test(low))sport='Велосипед'; else if(/йог/.test(low))sport='Йога'; else if(/біг/.test(low))sport='Біг';
-  return { sport:sport, date:date, startTime:startTime, durationSec:durationSec, durationMin:durationSec?Math.round(durationSec/60):'', calories:calories, avgHr:avgHr, maxHr:maxHr };
-}
-async function runOCR(file){
-  var st=document.getElementById('ocrStatus');
-  st.textContent='Завантажую OCR…';
-  try{ await loadTesseract(); }catch(e){ st.textContent='OCR не завантажився (перевір інтернет).'; return; }
-  st.textContent='Розпізнаю фото… це може зайняти 10–40 с';
-  try{
-    var r=await window.Tesseract.recognize(file,'ukr+eng',{ logger:function(mm){ if(mm&&mm.status==='recognizing text'){ st.textContent='Розпізнаю… '+Math.round((mm.progress||0)*100)+'%'; } } });
-    var w=parseMiText((r&&r.data&&r.data.text)||'');
-    document.getElementById('imName').value=w.sport||'Тренування';
-    if(w.date) document.getElementById('imDate').value=w.date;
-    document.getElementById('imDur').value=w.durationMin||'';
-    document.getElementById('imCal').value=w.calories||'';
-    document.getElementById('imAvg').value=w.avgHr||'';
-    document.getElementById('imMax').value=w.maxHr||'';
-    st.textContent='';
-    setImportMode('manual');
-    toast('Перевір дані й натисни «Додати»');
-  }catch(e){ st.textContent='Не вдалося розпізнати: '+(e&&e.message?e.message:e); }
-}
+function delPhoto(i){ if(!state.active)return; state.active.photos.splice(i,1); persistActive(); renderTrain(); }
+function openLightbox(src){ document.getElementById('lbImg').src=src; document.getElementById('lightbox').classList.remove('hidden'); }
+function photosGrid(list, editable){ const grid=document.createElement('div'); grid.className='photos'; (list||[]).forEach(function(src,i){ const wr=document.createElement('div'); wr.className='photowrap'; const im=document.createElement('img'); im.src=src; im.onclick=function(){ openLightbox(src); }; wr.appendChild(im); if(editable){ const rm=document.createElement('button'); rm.className='rm'; rm.textContent='✕'; rm.onclick=function(){ delPhoto(i); }; wr.appendChild(rm); } grid.appendChild(wr); }); return grid; }
 
 /* ---------- TRAIN ---------- */
 let saveTimer=null;
-function saveActiveSoon(){ if(!state.active)return; clearTimeout(saveTimer); const snap=JSON.parse(JSON.stringify(state.active.exercises)); saveTimer=setTimeout(function(){ updateDoc(doc(db,'workouts',state.active.id),{exercises:snap}).catch(function(){}); },600); }
-async function startWorkout(){ try{ const ref=await addDoc(collection(db,'workouts'),{ userId:state.me, date:todayStr(), exercises:[], done:false, createdAt:serverTimestamp() }); haptic(); toast('Поїхали 💪'); }catch(e){ alert('Помилка: '+e.message); } }
+async function persistActive(){ if(!state.active)return; try{ await updateDoc(doc(db,'workouts',state.active.id),{ exercises:state.active.exercises, photos:state.active.photos||[] }); }catch(e){} }
+function saveActiveSoon(){ if(!state.active)return; clearTimeout(saveTimer); saveTimer=setTimeout(persistActive,600); }
+async function startWorkout(){ try{ await addDoc(collection(db,'workouts'),{ userId:state.me, date:todayStr(), exercises:[], photos:[], done:false, createdAt:serverTimestamp() }); haptic(); toast('Поїхали 💪'); }catch(e){ alert('Помилка: '+e.message); } }
 function addExercise(name){ name=(name||'').trim(); if(!name||!state.active)return; state.active.exercises.push({name:name.slice(0,60), sets:[{reps:10,weight:0}]}); saveActiveSoon(); renderTrain(); }
 function addSet(i){ const ex=state.active.exercises[i]; const last=ex.sets[ex.sets.length-1]; ex.sets.push({reps:last?last.reps:10, weight:last?last.weight:0}); saveActiveSoon(); renderTrain(); }
 function delSet(i,j){ state.active.exercises[i].sets.splice(j,1); saveActiveSoon(); renderTrain(); }
 function delEx(i){ state.active.exercises.splice(i,1); saveActiveSoon(); renderTrain(); }
 function editSet(i,j,f,v){ state.active.exercises[i].sets[j][f]=v===''?0:Math.max(0,Number(v)); saveActiveSoon(); }
-async function finishWorkout(){ if(!state.active)return; try{ await updateDoc(doc(db,'workouts',state.active.id),{exercises:state.active.exercises, done:true}); haptic(); toast('Тренування збережено ✓'); }catch(e){ alert(e.message); } }
+async function finishWorkout(){ if(!state.active)return; try{ await updateDoc(doc(db,'workouts',state.active.id),{exercises:state.active.exercises, photos:state.active.photos||[], done:true}); haptic(); toast('Тренування збережено ✓'); }catch(e){ alert(e.message); } }
 async function cancelWorkout(){ if(!state.active)return; if(!confirm('Скасувати це тренування?'))return; try{ await deleteDoc(doc(db,'workouts',state.active.id)); }catch(e){} }
 
 function renderTrain(){
@@ -334,10 +243,7 @@ function renderTrain(){
     const c=document.createElement('div'); c.className='card'; c.style.textAlign='center';
     c.innerHTML='<div style="font-size:40px;margin:6px 0 10px">💪</div><div class="muted" style="margin-bottom:16px">Готовий тренуватись?</div>';
     const btn=document.createElement('button'); btn.className='bigbtn'; btn.textContent='Почати тренування'; btn.onclick=function(){ haptic(); startWorkout(); };
-    c.appendChild(btn);
-    const imp=document.createElement('button'); imp.className='ghostbtn'; imp.textContent='⌚ Імпорт тренування (годинник)'; imp.onclick=function(){ openImport(); };
-    c.appendChild(imp);
-    b.appendChild(c);
+    c.appendChild(btn); b.appendChild(c);
     if(state.sessions.length){ const lt=state.sessions.find(function(s){return s.done;}); if(lt){ const t=document.createElement('div'); t.className='section-title'; t.textContent='Останнє тренування'; b.appendChild(t); b.appendChild(sessionCard(lt,false)); } }
     return;
   }
@@ -375,6 +281,12 @@ function renderTrain(){
   const chips=document.createElement('div'); chips.className='chips'; chips.style.marginTop='12px';
   LIB.slice(0,8).forEach(function(n){ const ch=document.createElement('button'); ch.className='chip'; ch.textContent=n; ch.onclick=function(){ haptic(); addExercise(n); }; chips.appendChild(ch); });
   addc.appendChild(chips); b.appendChild(addc);
+  // photos
+  const pc=document.createElement('div'); pc.className='card';
+  pc.innerHTML='<div class="eyebrow">Скріншоти / фото</div>';
+  if((state.active.photos||[]).length) pc.appendChild(photosGrid(state.active.photos,true));
+  const ap=document.createElement('button'); ap.className='addphoto'; ap.textContent='📷 Додати скріншот'; ap.onclick=function(){ document.getElementById('photoInput').click(); };
+  pc.appendChild(ap); b.appendChild(pc);
   // finish
   const fin=document.createElement('button'); fin.className='bigbtn'; fin.textContent='Завершити тренування'; fin.onclick=function(){ haptic(); finishWorkout(); }; b.appendChild(fin);
   const can=document.createElement('button'); can.className='ghostbtn'; can.textContent='Скасувати'; can.onclick=cancelWorkout; b.appendChild(can);
@@ -390,7 +302,8 @@ function sessionCard(s,withDel){
   if(withDel){ const d=document.createElement('button'); d.className='del2'; d.innerHTML='🗑'; d.onclick=function(){ delSession(s.id); }; head.appendChild(d); }
   c.appendChild(head);
   if(s.imported){ if(s.avgHr||s.maxHr){ const hr=document.createElement('div'); hr.className='exline'; hr.innerHTML='<span>Пульс (сер./макс.)</span><span class="sets">'+(s.avgHr||'—')+' / '+(s.maxHr||'—')+' уд/хв</span>'; c.appendChild(hr); } }
-  else { s.exercises.forEach(function(ex){ const l=document.createElement('div'); l.className='exline'; l.innerHTML='<span>'+esc(ex.name)+'</span><span class="sets">'+esc(setsSummary(ex))+'</span>'; c.appendChild(l); }); if(!s.exercises.length){ const e=document.createElement('div'); e.className='muted'; e.style.fontSize='13px'; e.style.marginTop='8px'; e.textContent='Порожнє тренування'; c.appendChild(e); } }
+  else { s.exercises.forEach(function(ex){ const l=document.createElement('div'); l.className='exline'; l.innerHTML='<span>'+esc(ex.name)+'</span><span class="sets">'+esc(setsSummary(ex))+'</span>'; c.appendChild(l); }); if(!s.exercises.length && !(s.photos&&s.photos.length)){ const e=document.createElement('div'); e.className='muted'; e.style.fontSize='13px'; e.style.marginTop='8px'; e.textContent='Порожнє тренування'; c.appendChild(e); } }
+  if(s.photos && s.photos.length) c.appendChild(photosGrid(s.photos,false));
   return c;
 }
 async function delSession(id){ if(!confirm('Видалити це тренування?'))return; try{ await deleteDoc(doc(db,'workouts',id)); haptic(); toast('Видалено'); }catch(e){ alert(e.message); } }
@@ -404,7 +317,7 @@ function renderHistory(){
 
 /* ---------- PROGRESS ---------- */
 let progChart;
-function allExerciseNames(){ const set={}; state.sessions.forEach(function(s){ if(!s.done)return; s.exercises.forEach(function(e){ set[e.name]=true; }); }); return Object.keys(set); }
+function allExerciseNames(){ const set={}; state.sessions.forEach(function(s){ if(!s.done)return; (s.exercises||[]).forEach(function(e){ set[e.name]=true; }); }); return Object.keys(set); }
 function maxWeightOf(ex){ let m=0; ex.sets.forEach(function(s){ if((s.weight||0)>m)m=s.weight; }); return m; }
 function renderProgress(){
   const done=state.sessions.filter(function(s){return s.done;});
@@ -412,21 +325,18 @@ function renderProgress(){
   const weekAgo=new Date(Date.now()-6*864e5).toISOString().slice(0,10);
   document.getElementById('stWeek').textContent=done.filter(function(s){return s.date>=weekAgo;}).length;
   document.getElementById('stStreak').textContent=streak(done);
-  // exercise chips
   const names=allExerciseNames(); const chipsEl=document.getElementById('exChips'); chipsEl.innerHTML='';
-  if(!names.length){ document.getElementById('progBox').innerHTML='<div class="empty">Поки немає даних</div>'; }
+  if(!names.length){ document.getElementById('progBox').innerHTML='<div class="empty">Поки немає даних по вправах</div>'; }
   if(names.length && (!state.progEx || names.indexOf(state.progEx)<0)) state.progEx=names[0];
   names.forEach(function(n){ const ch=document.createElement('button'); ch.className='chip'+(state.progEx===n?' on':''); ch.textContent=n; ch.onclick=function(){ state.progEx=n; haptic(); renderProgress(); }; chipsEl.appendChild(ch); });
-  // chart: max weight per session over time for selected exercise
   if(state.progEx && typeof Chart!=='undefined'){
     document.getElementById('progBox').innerHTML='<canvas id="progChart"></canvas>';
-    const pts=[]; done.slice().reverse().forEach(function(s){ const ex=s.exercises.find(function(e){return e.name===state.progEx;}); if(ex){ const m=maxWeightOf(ex); if(m>0) pts.push({x:s.date,y:m}); } });
+    const pts=[]; done.slice().reverse().forEach(function(s){ const ex=(s.exercises||[]).find(function(e){return e.name===state.progEx;}); if(ex){ const m=maxWeightOf(ex); if(m>0) pts.push({x:s.date,y:m}); } });
     const tc=getComputedStyle(document.body).getPropertyValue('--text').trim()||'#eee';
     if(progChart)progChart.destroy();
     progChart=new Chart(document.getElementById('progChart'),{ type:'line', data:{ labels:pts.map(function(p){return new Intl.DateTimeFormat('uk-UA',{day:'numeric',month:'short'}).format(new Date(p.x+'T00:00:00'));}), datasets:[{ label:'Макс. вага, кг', data:pts.map(function(p){return p.y;}), borderColor:'#33E29B', backgroundColor:'rgba(51,226,155,.15)', fill:true, tension:.3, pointRadius:4, pointBackgroundColor:'#33E29B' }] }, options:{ responsive:true, maintainAspectRatio:false, plugins:{ legend:{ labels:{ color:tc } } }, scales:{ x:{ ticks:{color:tc}, grid:{display:false} }, y:{ ticks:{color:tc}, grid:{color:'rgba(255,255,255,.08)'}, beginAtZero:true } } } });
   }
-  // PRs
-  const pr={}; done.forEach(function(s){ s.exercises.forEach(function(e){ const m=maxWeightOf(e); if(m>(pr[e.name]||0)) pr[e.name]=m; }); });
+  const pr={}; done.forEach(function(s){ (s.exercises||[]).forEach(function(e){ const m=maxWeightOf(e); if(m>(pr[e.name]||0)) pr[e.name]=m; }); });
   const prl=document.getElementById('prList'); prl.innerHTML='';
   const keys=Object.keys(pr).filter(function(k){return pr[k]>0;}).sort(function(a,b){return pr[b]-pr[a];});
   if(!keys.length){ prl.innerHTML='<div class="muted" style="font-size:13px">Запиши ваги — тут з\'являться рекорди.</div>'; }
@@ -440,15 +350,8 @@ function renderActive(){ if(!state.ready)return; if(state.tab==='train')renderTr
 
 document.querySelectorAll('.nav button').forEach(function(b){ b.onclick=function(){ haptic(); switchTab(b.dataset.tab); }; });
 document.getElementById('signOutBtn').onclick=function(){ signOut(auth); };
-document.getElementById('tcxInput').onchange=function(e){ const f=e.target.files&&e.target.files[0]; if(f) importTcx(f); e.target.value=''; };
-document.querySelectorAll('#importModal .imode button').forEach(function(b){ b.onclick=function(){ setImportMode(b.dataset.m); }; });
-document.getElementById('imClose').onclick=closeImport;
-document.getElementById('imSaveManual').onclick=saveManual;
-document.getElementById('imSavePaste').onclick=savePaste;
-document.getElementById('imPickFile').onclick=function(){ document.getElementById('tcxInput').click(); };
-document.getElementById('ocrPick').onclick=function(){ document.getElementById('ocrInput').click(); };
-document.getElementById('ocrInput').onchange=function(e){ var f=e.target.files&&e.target.files[0]; if(f) runOCR(f); e.target.value=''; };
-document.getElementById('importModal').addEventListener('click',function(e){ if(e.target===this) closeImport(); });
+document.getElementById('photoInput').onchange=function(e){ var f=e.target.files&&e.target.files[0]; if(f) addPhoto(f); e.target.value=''; };
+document.getElementById('lightbox').onclick=function(){ this.classList.add('hidden'); document.getElementById('lbImg').src=''; };
 document.getElementById('loginBtn').onclick=async function(){ document.getElementById('loginErr').textContent=''; try{ await signInWithPopup(auth,provider); }catch(e){ if(e&&(e.code==='auth/popup-blocked'||e.code==='auth/operation-not-supported-in-this-environment'||e.code==='auth/cancelled-popup-request'||e.code==='auth/popup-closed-by-user')){ try{ await signInWithRedirect(auth,provider); }catch(e2){ document.getElementById('loginErr').textContent=e2.message; } } else { document.getElementById('loginErr').textContent=e.message; } } };
 getRedirectResult(auth).catch(function(){});
 
