@@ -96,6 +96,17 @@
 
   .toast{ position:fixed; left:50%; bottom:calc(var(--nav-h) + 34px + env(safe-area-inset-bottom)); transform:translateX(-50%) translateY(20px); background:var(--glass-strong); -webkit-backdrop-filter:var(--blur); backdrop-filter:var(--blur); border:1px solid var(--glass-brd); color:var(--text); padding:12px 22px; border-radius:99px; font-size:14px; font-weight:800; opacity:0; transition:.25s; z-index:100; pointer-events:none; box-shadow:var(--shadow), var(--hi); }
   .toast.show{ opacity:1; transform:translateX(-50%) translateY(0); }
+  .modal{ position:fixed; inset:0; background:rgba(0,0,0,.55); -webkit-backdrop-filter:blur(6px); backdrop-filter:blur(6px); display:flex; align-items:flex-end; justify-content:center; z-index:300; }
+  .modal .sheet{ width:100%; max-width:520px; background:rgba(18,24,22,.94); -webkit-backdrop-filter:var(--blur); backdrop-filter:var(--blur); border:1px solid var(--glass-brd); border-radius:26px 26px 0 0; padding:20px 18px calc(18px + env(safe-area-inset-bottom)); box-shadow:0 -10px 40px rgba(0,0,0,.55), var(--hi); max-height:90vh; overflow:auto; }
+  .modal h3{ font-size:19px; font-weight:800; margin:2px 0 14px; }
+  .imode{ display:flex; gap:8px; margin-bottom:16px; }
+  .imode button{ flex:1; border:none; background:rgba(255,255,255,.07); color:var(--hint); font-weight:800; font-size:13px; padding:11px; border-radius:12px; cursor:pointer; border:1px solid var(--glass-brd); }
+  .imode button.on{ background:var(--green); color:var(--on-accent); border-color:transparent; }
+  .fld{ margin-bottom:12px; } .fld label{ font-size:12px; color:var(--hint); font-weight:700; display:block; margin:0 2px 6px; }
+  .fld input{ width:100%; border:none; background:rgba(255,255,255,.06); color:var(--text); padding:13px; border-radius:12px; font-size:16px; outline:none; font-family:inherit; border:1px solid var(--glass-brd); }
+  .fld input[type=date]{ color-scheme:dark; }
+  .row2{ display:grid; grid-template-columns:1fr 1fr; gap:10px; }
+  textarea.tcxta{ width:100%; min-height:120px; border:none; background:rgba(255,255,255,.06); color:var(--text); padding:12px; border-radius:12px; font-size:12px; font-family:ui-monospace,Menlo,monospace; outline:none; border:1px solid var(--glass-brd); resize:vertical; }
   .hidden{ display:none !important; }
 </style>
 </head>
@@ -151,6 +162,41 @@
   <button data-tab="progress"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M4 19l5-5 4 4 7-7"/><path d="M21 7v4h-4"/></svg>Прогрес</button>
 </nav>
 
+<div id="importModal" class="modal hidden">
+  <div class="sheet">
+    <h3>Імпорт тренування</h3>
+    <div class="imode">
+      <button data-m="manual" class="on">Вручну</button>
+      <button data-m="paste">Вставити TCX</button>
+      <button data-m="file">Файл</button>
+    </div>
+    <div id="im-manual">
+      <div class="fld"><label>Назва</label><input id="imName" type="text" placeholder="Кардіо / Бігова доріжка" /></div>
+      <div class="row2">
+        <div class="fld"><label>Дата</label><input id="imDate" type="date" /></div>
+        <div class="fld"><label>Тривалість, хв</label><input id="imDur" type="number" inputmode="numeric" placeholder="30" /></div>
+      </div>
+      <div class="row2">
+        <div class="fld"><label>Дистанція, км</label><input id="imDist" type="number" inputmode="decimal" placeholder="0" /></div>
+        <div class="fld"><label>Калорії</label><input id="imCal" type="number" inputmode="numeric" placeholder="0" /></div>
+      </div>
+      <div class="row2">
+        <div class="fld"><label>Сер. пульс</label><input id="imAvg" type="number" inputmode="numeric" placeholder="0" /></div>
+        <div class="fld"><label>Макс. пульс</label><input id="imMax" type="number" inputmode="numeric" placeholder="0" /></div>
+      </div>
+      <button class="bigbtn" id="imSaveManual">Додати тренування</button>
+    </div>
+    <div id="im-paste" class="hidden">
+      <div class="fld"><label>Встав сюди весь вміст .tcx-файлу</label><textarea class="tcxta" id="imPaste" placeholder="&lt;?xml version=..."></textarea></div>
+      <button class="bigbtn" id="imSavePaste">Розпарсити й додати</button>
+    </div>
+    <div id="im-file" class="hidden">
+      <p class="muted" style="font-size:13.5px;line-height:1.5">Обери <b>.tcx</b>-файл. Якщо він сірий — спершу відкрий його один раз у застосунку «Файли» (щоб завантажився з iCloud), тоді повернись і обери.</p>
+      <button class="bigbtn" id="imPickFile">Обрати файл</button>
+    </div>
+    <button class="ghostbtn" id="imClose" style="margin-top:14px">Закрити</button>
+  </div>
+</div>
 <input type="file" id="tcxInput" style="display:none">
 <div class="toast" id="toast"></div>
 
@@ -204,15 +250,23 @@ function parseTcx(text){
   const maxHr=hrs.length?Math.max.apply(null,hrs):null;
   return { sport:sport||'Кардіо', startTime:id||'', date:localDateISO(id), durationSec:Math.round(dur), distanceM:Math.round(dist), calories:cal?Math.round(cal):null, avgHr:avgHr, maxHr:maxHr };
 }
-async function importTcx(file){
+async function saveImported(w){
   try{
-    const text=await file.text();
-    const w=parseTcx(text);
-    if(state.sessions.some(function(s){ return s.imported && s.startTime && s.startTime===w.startTime; })){ if(!confirm('Це тренування вже імпортоване. Додати ще раз?')) return; }
-    await addDoc(collection(db,'workouts'),{ userId:state.me, date:w.date, done:true, imported:true, sport:w.sport, startTime:w.startTime, durationSec:w.durationSec, distanceM:w.distanceM, calories:w.calories, avgHr:w.avgHr, maxHr:w.maxHr, exercises:[], createdAt:serverTimestamp() });
-    haptic(); toast('Імпортовано: '+w.sport+' ✓'); switchTab('history');
-  }catch(e){ alert('Не вдалося імпортувати: '+(e&&e.message?e.message:e)); }
+    if(w.startTime && state.sessions.some(function(s){ return s.imported && s.startTime===w.startTime; })){ if(!confirm('Це тренування вже додане. Додати ще раз?')) return; }
+    await addDoc(collection(db,'workouts'),{ userId:state.me, date:w.date||todayStr(), done:true, imported:true, sport:w.sport||'Кардіо', startTime:w.startTime||'', durationSec:w.durationSec||0, distanceM:w.distanceM||0, calories:w.calories||null, avgHr:w.avgHr||null, maxHr:w.maxHr||null, exercises:[], createdAt:serverTimestamp() });
+    haptic(); toast('Додано ✓'); closeImport(); switchTab('history');
+  }catch(e){ alert('Не вдалося зберегти: '+(e&&e.message?e.message:e)); }
 }
+async function importTcx(file){
+  try{ const text=await file.text(); const w=parseTcx(text); await saveImported(w); }
+  catch(e){ alert('Не вдалося імпортувати: '+(e&&e.message?e.message:e)); }
+}
+function openImport(){ document.getElementById('imDate').value=todayStr(); setImportMode('manual'); document.getElementById('importModal').classList.remove('hidden'); }
+function closeImport(){ document.getElementById('importModal').classList.add('hidden'); ['imName','imDur','imDist','imCal','imAvg','imMax','imPaste'].forEach(function(id){ var el=document.getElementById(id); if(el)el.value=''; }); }
+function setImportMode(m){ ['manual','paste','file'].forEach(function(x){ document.getElementById('im-'+x).classList.toggle('hidden',x!==m); }); document.querySelectorAll('#importModal .imode button').forEach(function(b){ b.classList.toggle('on',b.dataset.m===m); }); }
+function numOrNull(id){ var v=document.getElementById(id).value; return v!==''?Math.round(Number(v)):null; }
+function saveManual(){ var name=(document.getElementById('imName').value||'').trim()||'Кардіо'; var w={ sport:name, date:document.getElementById('imDate').value||todayStr(), durationSec:Math.round((parseFloat(document.getElementById('imDur').value)||0)*60), distanceM:Math.round((parseFloat(document.getElementById('imDist').value)||0)*1000), calories:numOrNull('imCal'), avgHr:numOrNull('imAvg'), maxHr:numOrNull('imMax'), startTime:'' }; saveImported(w); }
+function savePaste(){ var t=document.getElementById('imPaste').value||''; if(!t.trim()){ alert('Встав вміст файлу'); return; } try{ var w=parseTcx(t); saveImported(w); }catch(e){ alert('Не схоже на TCX: '+(e&&e.message?e.message:e)); } }
 
 /* ---------- TRAIN ---------- */
 let saveTimer=null;
@@ -233,7 +287,7 @@ function renderTrain(){
     c.innerHTML='<div style="font-size:40px;margin:6px 0 10px">💪</div><div class="muted" style="margin-bottom:16px">Готовий тренуватись?</div>';
     const btn=document.createElement('button'); btn.className='bigbtn'; btn.textContent='Почати тренування'; btn.onclick=function(){ haptic(); startWorkout(); };
     c.appendChild(btn);
-    const imp=document.createElement('button'); imp.className='ghostbtn'; imp.textContent='⌚ Імпорт з годинника (.tcx)'; imp.onclick=function(){ document.getElementById('tcxInput').click(); };
+    const imp=document.createElement('button'); imp.className='ghostbtn'; imp.textContent='⌚ Імпорт тренування (годинник)'; imp.onclick=function(){ openImport(); };
     c.appendChild(imp);
     b.appendChild(c);
     if(state.sessions.length){ const lt=state.sessions.find(function(s){return s.done;}); if(lt){ const t=document.createElement('div'); t.className='section-title'; t.textContent='Останнє тренування'; b.appendChild(t); b.appendChild(sessionCard(lt,false)); } }
@@ -339,6 +393,12 @@ function renderActive(){ if(!state.ready)return; if(state.tab==='train')renderTr
 document.querySelectorAll('.nav button').forEach(function(b){ b.onclick=function(){ haptic(); switchTab(b.dataset.tab); }; });
 document.getElementById('signOutBtn').onclick=function(){ signOut(auth); };
 document.getElementById('tcxInput').onchange=function(e){ const f=e.target.files&&e.target.files[0]; if(f) importTcx(f); e.target.value=''; };
+document.querySelectorAll('#importModal .imode button').forEach(function(b){ b.onclick=function(){ setImportMode(b.dataset.m); }; });
+document.getElementById('imClose').onclick=closeImport;
+document.getElementById('imSaveManual').onclick=saveManual;
+document.getElementById('imSavePaste').onclick=savePaste;
+document.getElementById('imPickFile').onclick=function(){ document.getElementById('tcxInput').click(); };
+document.getElementById('importModal').addEventListener('click',function(e){ if(e.target===this) closeImport(); });
 document.getElementById('loginBtn').onclick=async function(){ document.getElementById('loginErr').textContent=''; try{ await signInWithPopup(auth,provider); }catch(e){ if(e&&(e.code==='auth/popup-blocked'||e.code==='auth/operation-not-supported-in-this-environment'||e.code==='auth/cancelled-popup-request'||e.code==='auth/popup-closed-by-user')){ try{ await signInWithRedirect(auth,provider); }catch(e2){ document.getElementById('loginErr').textContent=e2.message; } } else { document.getElementById('loginErr').textContent=e.message; } } };
 getRedirectResult(auth).catch(function(){});
 
