@@ -167,7 +167,8 @@
     <h3>Імпорт тренування</h3>
     <div class="imode">
       <button data-m="manual" class="on">Вручну</button>
-      <button data-m="paste">Вставити TCX</button>
+      <button data-m="photo">Фото</button>
+      <button data-m="paste">Текст</button>
       <button data-m="file">Файл</button>
     </div>
     <div id="im-manual">
@@ -185,6 +186,12 @@
         <div class="fld"><label>Макс. пульс</label><input id="imMax" type="number" inputmode="numeric" placeholder="0" /></div>
       </div>
       <button class="bigbtn" id="imSaveManual">Додати тренування</button>
+    </div>
+    <div id="im-photo" class="hidden">
+      <p class="muted" style="font-size:13.5px;line-height:1.5">Обери <b>скріншот</b> тренування з Mi Fitness. Апка спробує зчитати дату, тривалість, калорії та пульс і підставить у форму — перевіриш і збережеш. Скріншоти читаються краще, ніж фото екрана.</p>
+      <input type="file" id="ocrInput" accept="image/*" style="display:none">
+      <button class="bigbtn" id="ocrPick">Обрати фото / скріншот</button>
+      <div id="ocrStatus" class="muted" style="font-size:13px;margin-top:12px"></div>
     </div>
     <div id="im-paste" class="hidden">
       <div class="fld"><label>Встав сюди весь вміст .tcx-файлу</label><textarea class="tcxta" id="imPaste" placeholder="&lt;?xml version=..."></textarea></div>
@@ -207,12 +214,12 @@ import { getFirestore, collection, query, where, onSnapshot, addDoc, updateDoc, 
 
 /* ===================== ВСТАВ СЮДИ СВІЙ КОНФІГ (той самий, що у фінансах) ===================== */
 const firebaseConfig = {
-  apiKey: "AIzaSyDDaqb2jQXwIjq5jghp134nONpH0tmjda4",
+  apiKey: "ВСТАВ_СВОЄ",
   authDomain: "finansikibot.firebaseapp.com",
   projectId: "finansikibot",
-  storageBucket: "finansikibot.firebasestorage.app",
-  messagingSenderId: "503012102916",
-  appId: "1:503012102916:web:90f832087f877b48a37651"
+  storageBucket: "finansikibot.appspot.com",
+  messagingSenderId: "ВСТАВ_СВОЄ",
+  appId: "ВСТАВ_СВОЄ"
 };
 /* ========================================================================================= */
 
@@ -262,11 +269,52 @@ async function importTcx(file){
   catch(e){ alert('Не вдалося імпортувати: '+(e&&e.message?e.message:e)); }
 }
 function openImport(){ document.getElementById('imDate').value=todayStr(); setImportMode('manual'); document.getElementById('importModal').classList.remove('hidden'); }
-function closeImport(){ document.getElementById('importModal').classList.add('hidden'); ['imName','imDur','imDist','imCal','imAvg','imMax','imPaste'].forEach(function(id){ var el=document.getElementById(id); if(el)el.value=''; }); }
-function setImportMode(m){ ['manual','paste','file'].forEach(function(x){ document.getElementById('im-'+x).classList.toggle('hidden',x!==m); }); document.querySelectorAll('#importModal .imode button').forEach(function(b){ b.classList.toggle('on',b.dataset.m===m); }); }
+function closeImport(){ document.getElementById('importModal').classList.add('hidden'); ['imName','imDur','imDist','imCal','imAvg','imMax','imPaste'].forEach(function(id){ var el=document.getElementById(id); if(el)el.value=''; }); var os=document.getElementById('ocrStatus'); if(os)os.textContent=''; }
+function setImportMode(m){ ['manual','photo','paste','file'].forEach(function(x){ document.getElementById('im-'+x).classList.toggle('hidden',x!==m); }); document.querySelectorAll('#importModal .imode button').forEach(function(b){ b.classList.toggle('on',b.dataset.m===m); }); }
 function numOrNull(id){ var v=document.getElementById(id).value; return v!==''?Math.round(Number(v)):null; }
 function saveManual(){ var name=(document.getElementById('imName').value||'').trim()||'Кардіо'; var w={ sport:name, date:document.getElementById('imDate').value||todayStr(), durationSec:Math.round((parseFloat(document.getElementById('imDur').value)||0)*60), distanceM:Math.round((parseFloat(document.getElementById('imDist').value)||0)*1000), calories:numOrNull('imCal'), avgHr:numOrNull('imAvg'), maxHr:numOrNull('imMax'), startTime:'' }; saveImported(w); }
 function savePaste(){ var t=document.getElementById('imPaste').value||''; if(!t.trim()){ alert('Встав вміст файлу'); return; } try{ var w=parseTcx(t); saveImported(w); }catch(e){ alert('Не схоже на TCX: '+(e&&e.message?e.message:e)); } }
+
+/* ---------- OCR фото (Mi Fitness) ---------- */
+function loadTesseract(){ return new Promise(function(res,rej){ if(window.Tesseract) return res(); var s=document.createElement('script'); s.src='https://cdn.jsdelivr.net/npm/tesseract.js@5/dist/tesseract.min.js'; s.onload=function(){ res(); }; s.onerror=function(){ rej(new Error('не вдалося завантажити OCR')); }; document.head.appendChild(s); }); }
+function hrOk(n){ return n>=35 && n<=230 ? n : null; }
+function parseMiText(t){
+  var s=(t||'').replace(/[’`]/g,"'"); var low=s.toLowerCase();
+  var date=''; var m=s.match(/(\d{4})[\/.\-](\d{1,2})[\/.\-](\d{1,2})/); if(m){ date=m[1]+'-'+String(+m[2]).padStart(2,'0')+'-'+String(+m[3]).padStart(2,'0'); }
+  var startTime=''; var dt=s.match(/\d{4}[\/.\-]\d{1,2}[\/.\-]\d{1,2}\D{0,3}(\d{1,2}:\d{2}:\d{2})/); if(dt) startTime=dt[1];
+  var times=[]; var re=/(\d{1,2}):(\d{2}):(\d{2})/g, mm; while((mm=re.exec(s))){ times.push({raw:mm[0], sec:(+mm[1])*3600+(+mm[2])*60+(+mm[3])}); }
+  var durationSec=0; var cand=times.filter(function(x){ return x.raw!==startTime && x.sec>0 && x.sec<6*3600; });
+  if(cand.length){ cand.sort(function(a,b){ return a.sec-b.sec; }); durationSec=cand[0].sec; } else if(times.length){ durationSec=times[0].sec; }
+  var cals=[]; var rc=/(\d{2,4})\s*ккал/g, cm; while((cm=rc.exec(low))){ cals.push(+cm[1]); }
+  var calories=cals.length?Math.max.apply(null,cals):null;
+  var avgHr=null,maxHr=null;
+  function findHr(lbl){ var mm2=low.match(new RegExp('(\\d{2,3})[^\\d]{0,8}'+lbl)); if(mm2){ var v=hrOk(+mm2[1]); if(v) return v; } mm2=low.match(new RegExp(lbl+'[^\\d]{0,8}(\\d{2,3})')); if(mm2) return hrOk(+mm2[1]); return null; }
+  maxHr=findHr('максим'); avgHr=findHr("серед[а-яії'\\s]*пульс");
+  if(avgHr==null){ var u=low.match(/(\d{2,3})\s*уд\/?\s*хв/); if(u) avgHr=hrOk(+u[1]); }
+  if(avgHr!=null && maxHr!=null && avgHr>maxHr){ var tp=avgHr; avgHr=maxHr; maxHr=tp; }
+  var sport='Тренування';
+  if(/силов/.test(low))sport='Силове тренування'; else if(/бігов|доріжк/.test(low))sport='Бігова доріжка'; else if(/ходьб/.test(low))sport='Ходьба'; else if(/велосип/.test(low))sport='Велосипед'; else if(/йог/.test(low))sport='Йога'; else if(/біг/.test(low))sport='Біг';
+  return { sport:sport, date:date, startTime:startTime, durationSec:durationSec, durationMin:durationSec?Math.round(durationSec/60):'', calories:calories, avgHr:avgHr, maxHr:maxHr };
+}
+async function runOCR(file){
+  var st=document.getElementById('ocrStatus');
+  st.textContent='Завантажую OCR…';
+  try{ await loadTesseract(); }catch(e){ st.textContent='OCR не завантажився (перевір інтернет).'; return; }
+  st.textContent='Розпізнаю фото… це може зайняти 10–40 с';
+  try{
+    var r=await window.Tesseract.recognize(file,'ukr+eng',{ logger:function(mm){ if(mm&&mm.status==='recognizing text'){ st.textContent='Розпізнаю… '+Math.round((mm.progress||0)*100)+'%'; } } });
+    var w=parseMiText((r&&r.data&&r.data.text)||'');
+    document.getElementById('imName').value=w.sport||'Тренування';
+    if(w.date) document.getElementById('imDate').value=w.date;
+    document.getElementById('imDur').value=w.durationMin||'';
+    document.getElementById('imCal').value=w.calories||'';
+    document.getElementById('imAvg').value=w.avgHr||'';
+    document.getElementById('imMax').value=w.maxHr||'';
+    st.textContent='';
+    setImportMode('manual');
+    toast('Перевір дані й натисни «Додати»');
+  }catch(e){ st.textContent='Не вдалося розпізнати: '+(e&&e.message?e.message:e); }
+}
 
 /* ---------- TRAIN ---------- */
 let saveTimer=null;
@@ -398,6 +446,8 @@ document.getElementById('imClose').onclick=closeImport;
 document.getElementById('imSaveManual').onclick=saveManual;
 document.getElementById('imSavePaste').onclick=savePaste;
 document.getElementById('imPickFile').onclick=function(){ document.getElementById('tcxInput').click(); };
+document.getElementById('ocrPick').onclick=function(){ document.getElementById('ocrInput').click(); };
+document.getElementById('ocrInput').onchange=function(e){ var f=e.target.files&&e.target.files[0]; if(f) runOCR(f); e.target.value=''; };
 document.getElementById('importModal').addEventListener('click',function(e){ if(e.target===this) closeImport(); });
 document.getElementById('loginBtn').onclick=async function(){ document.getElementById('loginErr').textContent=''; try{ await signInWithPopup(auth,provider); }catch(e){ if(e&&(e.code==='auth/popup-blocked'||e.code==='auth/operation-not-supported-in-this-environment'||e.code==='auth/cancelled-popup-request'||e.code==='auth/popup-closed-by-user')){ try{ await signInWithRedirect(auth,provider); }catch(e2){ document.getElementById('loginErr').textContent=e2.message; } } else { document.getElementById('loginErr').textContent=e.message; } } };
 getRedirectResult(auth).catch(function(){});
